@@ -1,11 +1,10 @@
-import getpass
-import os
 from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+from langchain_core.tools import tool
 
 
 load_dotenv()
@@ -13,6 +12,11 @@ load_dotenv()
 class ResponseFormatter(BaseModel):
     answer: str = Field(description = "Answer")
     followup_question: str = Field(description = "follow-up questions")
+
+@tool
+def Multiply(a: int, b: int) -> int:
+    """ Multiply a and b """
+    return a * b
 
 
 def BuildMsg(text):
@@ -25,8 +29,9 @@ def BuildMsg(text):
 
 
 
-messages = BuildMsg("What is the powerhouse of the cell?")
+#messages = BuildMsg("What is the powerhouse of the cell?")
 #messages = BuildMsg("Langchain具有哪些功能？")
+messages = BuildMsg("2乘3是多少？")
 
 ''' Usage 1 '''
 #model = init_chat_model("gemini-2.0-flash", model_provider="google_genai")
@@ -43,6 +48,13 @@ messages = BuildMsg("What is the powerhouse of the cell?")
 #print(pydantic_obj)
 
 ''' Usage 3 '''
-model = init_chat_model("gemini-2.0-flash", model_provider="google_genai").with_structured_output(ResponseFormatter, method='json_mode')
-response = model.invoke(messages)
+#model = init_chat_model("gemini-2.0-flash", model_provider="google_genai").with_structured_output(ResponseFormatter, method='json_mode')
+#response = model.invoke(messages)
+#print(response)
+
+model = init_chat_model("gemini-2.0-flash", model_provider="google_genai")
+model_with_tools = model.bind_tools([Multiply])
+response = model_with_tools.invoke(messages)
 print(response)
+print()
+print(response.tool_calls)
