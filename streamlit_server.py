@@ -2,7 +2,8 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts.chat import HumanMessagePromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_community.chat_message_histories.in_memory import ChatMessageHistory
@@ -51,7 +52,7 @@ for message in st.session_state.messages:
 def BuildVectorStore(filename: str):
     loader = PyPDFLoader(filename)
     docs = loader.load()
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=5, add_start_index=True)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=500, add_start_index=True)
     all_splits = text_splitter.split_documents(docs)
 
     embedding_model = GoogleGenerativeAIEmbeddings(model='models/embedding-001')
@@ -61,10 +62,18 @@ def BuildVectorStore(filename: str):
 
 #conversation = BuildConversation()
 session_id = "user-123"
-vector_store = BuildVectorStore(filename = 'data/test.pdf')
+vector_store = BuildVectorStore(filename = 'data/2300.16-GLBL-en ROSA Knee System User Manual and Surg Tech-digital.pdf')
 
 model = init_chat_model("gemini-2.0-flash", model_provider="google_genai")
-prompt = hub.pull("rlm/rag-prompt")
+#prompt = hub.pull("rlm/rag-prompt")
+prompt = ChatPromptTemplate(
+    input_variables=['context', 'question'],
+    messages = [
+        HumanMessagePromptTemplate(prompt = PromptTemplate(input_variables=['context', 'question'],
+            #template = "As a technical expert and instructor, please refer to the document content and reply by generating questions to assess the user's familiarity with the product. The quiz should include answers at the end of the response and two types of questions: multiple-choice questions with four options and short-answer questions. The scope of the questions should cover the details and content within each subsection of the document, ensuring that no questions are repeated. The questions should comprehensively cover a wide range of topics from the document. Never mention the section number.\nQuestion: {question}\nContext: {context} \nAnswer:"),
+            template = "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Remeber to reply in Traditional Chinese. \nQuestion: {question} \nContext: {context} \nAnswer:"),
+        )]
+    )
 
 class State(TypedDict):
     question: str
